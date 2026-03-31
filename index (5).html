@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YFS Lead Pipeline</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #f9f8f6;
+            color: #2c2c2a;
+            line-height: 1.6;
+        }
+        .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+        h1 { font-size: 28px; font-weight: 500; margin-bottom: 2rem; color: #0B3405; }
+        h2 { font-size: 18px; font-weight: 500; margin-bottom: 1.5rem; color: #2c2c2a; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
+        .brand { display: flex; align-items: center; gap: 12px; }
+        .brand-color { width: 24px; height: 24px; background: #0B3405; border-radius: 4px; }
+        .auth-section { 
+            background: #fff; 
+            border: 1px solid #e0dcd6;
+            border-radius: 12px;
+            padding: 2rem;
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        .auth-section p { color: #888780; margin-bottom: 1.5rem; font-size: 14px; }
+        #google_signin_button { display: inline-block; }
+        .dashboard { display: none; }
+        .stats-grid { 
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 12px;
+            margin-bottom: 2rem;
+        }
+        .stat-card {
+            background: #f5f4f1;
+            border: 1px solid #e0dcd6;
+            border-radius: 8px;
+            padding: 1rem;
+        }
+        .stat-label { font-size: 13px; color: #888780; margin-bottom: 8px; }
+        .stat-number { font-size: 24px; font-weight: 500; color: #2c2c2a; }
+        .chart-section {
+            background: #fff;
+            border: 1px solid #e0dcd6;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        #funnelChart { max-height: 300px; }
+        .filters {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+        .filter-btn {
+            padding: 8px 16px;
+            border: 1px solid #e0dcd6;
+            background: #fff;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        .filter-btn:hover { background: #f5f4f1; }
+        .filter-btn.active { 
+            background: #0B3405;
+            color: #fff;
+            border-color: #0B3405;
+        }
+        .table-wrapper {
+            background: #fff;
+            border: 1px solid #e0dcd6;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+        thead {
+            background: #f5f4f1;
+            border-bottom: 1px solid #e0dcd6;
+        }
+        th {
+            padding: 12px 16px;
+            text-align: left;
+            font-weight: 500;
+            color: #888780;
+            font-size: 13px;
+        }
+        td {
+            padding: 12px 16px;
+            border-bottom: 1px solid #e0dcd6;
+        }
+        tr:last-child td { border-bottom: none; }
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .status-prospect { background: #EAF3DE; color: #3B6D11; }
+        .status-consultation { background: #FAEEDA; color: #BA7517; }
+        .status-closed { background: #E6F1FB; color: #185FA5; }
+        .actions {
+            display: flex;
+            gap: 8px;
+        }
+        .action-btn {
+            padding: 6px 12px;
+            background: none;
+            border: 1px solid #e0dcd6;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            color: #0B3405;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .action-btn:hover { background: #f5f4f1; }
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: #888780;
+        }
+        .footer {
+            margin-top: 2rem;
+            padding: 1rem;
+            background: #f5f4f1;
+            border-radius: 8px;
+            font-size: 12px;
+            color: #888780;
+            text-align: center;
+        }
+        .logout-btn {
+            padding: 8px 16px;
+            background: #DFA88A;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        .logout-btn:hover { background: #cba07d; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="brand">
+                <div class="brand-color"></div>
+                <h1>Young Financial Services</h1>
+            </div>
+            <button id="logoutBtn" class="logout-btn" style="display: none;">Sign Out</button>
+        </div>
+
+        <div class="auth-section">
+            <h2>Connect Your Google Form</h2>
+            <p>Sign in with your Google account to sync form responses and track leads in real time.</p>
+            <div id="google_signin_button"></div>
+        </div>
+
+        <div class="dashboard" id="dashboard">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-label">Total Leads</div>
+                    <div class="stat-number" id="totalLeads">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Prospects</div>
+                    <div class="stat-number" id="prospects">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Booked Consultations</div>
+                    <div class="stat-number" id="consultations">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Sales Closed</div>
+                    <div class="stat-number" id="closed">0</div>
+                </div>
+            </div>
+
+            <div class="chart-section">
+                <h2>Lead Funnel</h2>
+                <canvas id="funnelChart"></canvas>
+            </div>
+
+            <h2>Filter by Status</h2>
+            <div class="filters">
+                <button class="filter-btn active" data-filter="all">All</button>
+                <button class="filter-btn" data-filter="prospect">Prospects</button>
+                <button class="filter-btn" data-filter="consultation">Booked Consultations</button>
+                <button class="filter-btn" data-filter="closed">Closed Sales</button>
+            </div>
+
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Phone</th>
+                            <th>Service</th>
+                            <th>Status</th>
+                            <th>Submitted</th>
+                            <th style="text-align: center;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leadsBody">
+                        <tr><td colspan="7" class="empty-state">Sign in to load leads from your Google Form</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="footer">
+                Last synced: <span id="lastSync">Never</span> | Auto-refresh every 30 seconds
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const GOOGLE_CLIENT_ID = '762871460981-fd1cf5hjmhdfpm1nqi7v2o1df1ilcaa2.apps.googleusercontent.com';
+        const FORM_ID = '1YnFjeVCIfgY1CKwzakrv_3kiuSGRq4WpCLs9t4RJGDs';
+        
+        let allLeads = [];
+        let accessToken = null;
+        let funnelChart = null;
+        let currentFilter = 'all';
+
+        function initializeGoogleSignIn() {
+            window.google.accounts.id.initialize({
+                client_id: GOOGLE_CLIENT_ID,
+                callback: handleCredentialResponse
+            });
+
+            window.google.accounts.id.renderButton(
+                document.getElementById('google_signin_button'),
+                { 
+                    theme: 'outline', 
+                    size: 'large',
+                    text: 'continue_with'
+                }
+            );
+        }
+
+        function handleCredentialResponse(response) {
+            const token = response.credential;
+            const decoded = JSON.parse(atob(token.split('.')[1]));
+            accessToken = token;
+            localStorage.setItem('yfs_token', token);
+            showDashboard();
+            fetchFormResponses();
+        }
+
+        function showDashboard() {
+            document.querySelector('.auth-section').style.display = 'none';
+            document.getElementById('dashboard').style.display = 'block';
+            document.getElementById('logoutBtn').style.display = 'block';
+            startAutoSync();
+        }
+
+        async function fetchFormResponses() {
+            if (!accessToken) return;
+            
+            try {
+                const response = await fetch(
+                    `https://forms.googleapis.com/v1/forms/${FORM_ID}/responses`,
+                    { headers: { 'Authorization': `Bearer ${accessToken}` } }
+                );
+                
+                if (!response.ok) {
+                    console.error('API Error:', response.status);
+                    return;
+                }
+
+                const data = await response.json();
+                processResponses(data.responses || []);
+            } catch (error) {
+                console.error('Error fetching responses:', error);
+            }
+        }
+
+        function processResponses(responses) {
+            const stored = JSON.parse(localStorage.getItem('yfs_leads') || '[]');
+            
+            responses.forEach(resp => {
+                const existingIndex = stored.findIndex(l => l.id === resp.responseId);
+                
+                if (existingIndex === -1) {
+                    const answers = resp.answers || {};
+                    const answerKeys = Object.keys(answers).sort();
+                    
+                    const newLead = {
+                        id: resp.responseId,
+                        name: getAnswerText(answers[answerKeys[0]]) || 'Unknown',
+                        email: getAnswerText(answers[answerKeys[1]]) || 'N/A',
+                        phone: getAnswerText(answers[answerKeys[2]]) || 'N/A',
+                        service: getAnswerText(answers[answerKeys[3]]) || 'General',
+                        status: 'prospect',
+                        timestamp: new Date(resp.createTime).toLocaleDateString()
+                    };
+                    stored.push(newLead);
+                }
+            });
+            
+            allLeads = stored;
+            localStorage.setItem('yfs_leads', JSON.stringify(allLeads));
+            updateUI();
+        }
+
+        function getAnswerText(answer) {
+            return answer?.textAnswers?.answers?.[0]?.value || '';
+        }
+
+        function updateUI() {
+            updateStats();
+            renderFunnel();
+            renderTable();
+            document.getElementById('lastSync').textContent = new Date().toLocaleTimeString();
+        }
+
+        function updateStats() {
+            const total = allLeads.length;
+            const prospects = allLeads.filter(l => l.status === 'prospect').length;
+            const consultations = allLeads.filter(l => l.status === 'consultation').length;
+            const closed = allLeads.filter(l => l.status === 'closed').length;
+            
+            document.getElementById('totalLeads').textContent = total;
+            document.getElementById('prospects').textContent = prospects;
+            document.getElementById('consultations').textContent = consultations;
+            document.getElementById('closed').textContent = closed;
+        }
+
+        function renderFunnel() {
+            const prospects = allLeads.filter(l => l.status === 'prospect').length;
+            const consultations = allLeads.filter(l => l.status === 'consultation').length;
+            const closed = allLeads.filter(l => l.status === 'closed').length;
+            
+            const ctx = document.getElementById('funnelChart').getContext('2d');
+            if (funnelChart) funnelChart.destroy();
+            
+            funnelChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Prospects', 'Booked Consultations', 'Closed Sales'],
+                    datasets: [{
+                        label: 'Leads',
+                        data: [prospects, consultations, closed],
+                        backgroundColor: ['#3B6D11', '#BA7517', '#185FA5'],
+                        borderColor: ['#3B6D11', '#BA7517', '#185FA5'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: { legend: { display: false } },
+                    scales: { x: { beginAtZero: true } }
+                }
+            });
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('leadsBody');
+            const filtered = currentFilter === 'all' 
+                ? allLeads 
+                : allLeads.filter(l => l.status === currentFilter);
+            
+            if (filtered.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="empty-state">No leads in this status</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = filtered.map((lead, idx) => `
+                <tr>
+                    <td>${lead.name}</td>
+                    <td>${lead.email}</td>
+                    <td>${lead.phone}</td>
+                    <td>${lead.service}</td>
+                    <td><span class="status-badge status-${lead.status}">${capitalize(lead.status)}</span></td>
+                    <td>${lead.timestamp}</td>
+                    <td style="text-align: center;">
+                        <div class="actions">
+                            ${lead.status !== 'consultation' ? `<button class="action-btn" onclick="changeStatus('${lead.id}', 'consultation')">Book</button>` : ''}
+                            ${lead.status !== 'closed' ? `<button class="action-btn" onclick="changeStatus('${lead.id}', 'closed')">Close</button>` : ''}
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function changeStatus(leadId, newStatus) {
+            const lead = allLeads.find(l => l.id === leadId);
+            if (lead) {
+                lead.status = newStatus;
+                localStorage.setItem('yfs_leads', JSON.stringify(allLeads));
+                updateUI();
+            }
+        }
+
+        function capitalize(str) {
+            return str === 'consultation' ? 'Booked Consultation' : str.charAt(0).toUpperCase() + str.slice(1);
+        }
+
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+                currentFilter = e.target.dataset.filter;
+                renderTable();
+            });
+        });
+
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            localStorage.removeItem('yfs_token');
+            localStorage.removeItem('yfs_leads');
+            location.reload();
+        });
+
+        function startAutoSync() {
+            setInterval(fetchFormResponses, 30000);
+        }
+
+        if (localStorage.getItem('yfs_token')) {
+            accessToken = localStorage.getItem('yfs_token');
+            allLeads = JSON.parse(localStorage.getItem('yfs_leads') || '[]');
+            showDashboard();
+            updateUI();
+        } else {
+            initializeGoogleSignIn();
+        }
+    </script>
+</body>
+</html>
